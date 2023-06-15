@@ -1,0 +1,19 @@
+from importlib import import_module
+from typing import Any, Callable, Dict
+
+from rosbridge_library.internal import message_conversion
+
+def lookup_object(object_path : str, package : str = 'rclpy_mqtt_bridge') -> Any:
+    module_name, obj_name = object_path.split(":")
+    
+    module = import_module(module_name, package)
+    obj : Any = getattr(module, obj_name)
+
+    return obj
+
+
+extract_values = message_conversion.extract_values  
+populate_instance = message_conversion.populate_instance
+
+
+__all__ = ['lookup_object', 'extract_values', 'populate_instance']
