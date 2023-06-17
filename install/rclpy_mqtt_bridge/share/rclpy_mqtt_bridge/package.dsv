@@ -1,9 +1,0 @@
-source;share/rclpy_mqtt_bridge/hook/pythonpath.ps1
-source;share/rclpy_mqtt_bridge/hook/pythonpath.dsv
-source;share/rclpy_mqtt_bridge/hook/pythonpath.sh
-source;share/rclpy_mqtt_bridge/hook/ament_prefix_path.ps1
-source;share/rclpy_mqtt_bridge/hook/ament_prefix_path.dsv
-source;share/rclpy_mqtt_bridge/hook/ament_prefix_path.sh
-source;../../build/rclpy_mqtt_bridge/share/rclpy_mqtt_bridge/hook/pythonpath_develop.ps1
-source;../../build/rclpy_mqtt_bridge/share/rclpy_mqtt_bridge/hook/pythonpath_develop.dsv
-source;../../build/rclpy_mqtt_bridge/share/rclpy_mqtt_bridge/hook/pythonpath_develop.sh

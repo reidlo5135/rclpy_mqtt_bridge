@@ -15,7 +15,6 @@ def default_mqtt_client_factory(params: Dict) -> mqtt.Client:
         client.tls_set(**tls_params)
         client.tls_insecure_set(tls_insecure)
 
-    # configure username and password
     account_params = params.get('account', {})
     if account_params:
         account_params = param_to_value(account_params)
