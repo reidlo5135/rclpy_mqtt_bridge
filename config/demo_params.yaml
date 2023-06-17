@@ -2,7 +2,7 @@ rclpy_mqtt_bridge_node:
   ros__parameters:
     mqtt:
       client:
-        protocol: 4      # MQTTv311
+        protocol: 4
       connection:
         host: "localhost"
         port: 1883
@@ -10,8 +10,8 @@ rclpy_mqtt_bridge_node:
       private_path: "device/001"
     serializer: json:dumps
     deserializer: json:loads
-    n_bridges: 2
+    n_bridges: 3
     bridge:
       bridge1: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","std_msgs.msg:String","/chatter","chatter"]
       bridge2: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","geometry_msgs.msg:Twist","/cmd_vel","cmd_vel"]
- 
+      brideg3: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:MqttToRosBridge", "std_msgs.msg:String", "chatter", "/response/chatter"]
