@@ -3,9 +3,9 @@ import paho.mqtt.client as mqtt
 import rclpy
 from rclpy.node import Node
 
-from .rm_bridge import create_bridge
+from .dynamic_bridge import create_bridge
 from ..mqtt.mqtt_client import create_private_path_extractor
-from .util import lookup_object
+from ..util import lookup_object
 
 
 def create_config(mqtt_client, serializer, deserializer, mqtt_private_path):

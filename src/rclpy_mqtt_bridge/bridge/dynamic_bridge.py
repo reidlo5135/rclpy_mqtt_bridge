@@ -4,7 +4,7 @@ from typing import Optional, Type, Dict, Union
 import inject
 import paho.mqtt.client as mqtt
 
-from .util import lookup_object, extract_values, populate_instance
+from ..util import lookup_object, extract_values, populate_instance
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration

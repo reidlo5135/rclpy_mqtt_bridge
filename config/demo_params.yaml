@@ -12,6 +12,6 @@ rclpy_mqtt_bridge_node:
     deserializer: json:loads
     n_bridges: 2
     bridge:
-      bridge1: ["mqtt_bridge.bridge:RosToMqttBridge","std_msgs.msg:String","/chatter","chatter"]
-      bridge2: ["mqtt_bridge.bridge:RosToMqttBridge","geometry_msgs.msg:Twist","/cmd_vel","cmd_vel"]
+      bridge1: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","std_msgs.msg:String","/chatter","chatter"]
+      bridge2: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","geometry_msgs.msg:Twist","/cmd_vel","cmd_vel"]
  

@@ -1,5 +1,5 @@
 from rclpy.exceptions import ROSInterruptException
-from mqtt_bridge.app import mqtt_bridge_node
+from .bridge.app import mqtt_bridge_node
 import rclpy
 
 
