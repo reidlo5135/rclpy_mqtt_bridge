@@ -1,4 +1,4 @@
-mqtt_bridge_node:
+rclpy_mqtt_bridge_node:
   ros__parameters:
     mqtt:
       tls:

@@ -27,7 +27,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rclpy_mqtt_bridge_node = rclpy_mqtt_bridge.rclpy_mqtt_bridge_node:main'
+            'rclpy_mqtt_bridge_node = rclpy_mqtt_bridge.main:main'
         ],
     },
 )

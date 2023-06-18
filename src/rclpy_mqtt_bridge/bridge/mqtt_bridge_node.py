@@ -39,6 +39,7 @@ def mqtt_bridge_node():
     bridge_dict_keys = ["factory", "ros_message_type", "topic_from", "topic_to"]
     bridge_params = []
     total_bridges = mqtt_node.get_parameter("n_bridges").value
+    
     for i in range(total_bridges):
         bridge_n = str((i % total_bridges) + 1)
         bridge_param = mqtt_node.get_parameter('bridge.bridge' + bridge_n).value
