@@ -10,8 +10,8 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 
 
-def create_bridge(factory: Union[str, "Bridge"], ros_message_type: str, topic_from: str, topic_to: str,
-                  ros_frequency: Optional[float] = None, **kwargs) -> "Bridge":
+def create_bridge(factory : Union[str, "Bridge"], ros_message_type : str, topic_from : str, topic_to : str,
+                  ros_frequency : Optional[float] = None, **kwargs) -> "Bridge":
     if isinstance(factory, str):
         factory = lookup_object(factory)
 
@@ -32,7 +32,7 @@ class Bridge(object, metaclass=ABCMeta):
 
 
 class RosToMqttBridge(Bridge):
-    def __init__(self, topic_from: str, topic_to: str, ros_message_type, ros_frequency: Optional[float] = None, **kwargs):
+    def __init__(self, topic_from : str, topic_to : str, ros_message_type, ros_frequency : Optional[float] = None, **kwargs):
         self.ros_node_ = kwargs["ros_node"]
         self.topic_from_ = topic_from
         self.topic_to_ = self.extract_private_path_(topic_to)
@@ -42,21 +42,21 @@ class RosToMqttBridge(Bridge):
         
         self.ros_node_.get_logger().info("[ROS to MQTT] created ROS subscription with topic : {}, message type : {}".format(topic_from, ros_message_type))
 
-    def ros_callback(self, msg):
+    def ros_callback(self, ros_message):
         self.ros_node_.get_logger().info("ROS received from {}".format(self.topic_from_))
         now = self.ros_node_.get_clock().now()
         if now - self.ros_last_published_time_ >= self.ros_interval_:
-            self.mqtt_publish(msg)
+            self.mqtt_publish(ros_message)
             self.ros_last_published_time_ = now
 
-    def mqtt_publish(self, msg):
-        payload = self.serialize_(extract_values(msg))
+    def mqtt_publish(self, mqtt_message):
+        payload = self.serialize_(extract_values(mqtt_message))
         self.mqtt_client_.publish(topic=self.topic_to_, payload=payload)
 
 
 class MqttToRosBridge(Bridge):
-    def __init__(self, topic_from: str, topic_to: str, ros_message_type, ros_frequency: Optional[float] = None,
-                 ros_queue_size: int = 10, **kwargs):
+    def __init__(self, topic_from : str, topic_to : str, ros_message_type, ros_frequency : Optional[float] = None,
+                 ros_queue_size : int = 10, **kwargs):
         self.ros_node = kwargs["ros_node"]
         self.topic_from_ = self.extract_private_path_(topic_from)
         self.topic_to_ = topic_to
@@ -71,8 +71,8 @@ class MqttToRosBridge(Bridge):
         
         self.ros_node.get_logger().info("[MQTT to ROS] created ROS publisher with topic : {}, message type : {}".format(self.topic_to_, self.ros_message_type_))
 
-    def mqtt_callback(self, client: mqtt.Client, userdata: Dict, mqtt_message: mqtt.MQTTMessage):
-        self.ros_node.get_logger().info("MQTT received from {}".format(mqtt_message.topic))
+    def mqtt_callback(self, client : mqtt.Client, userdata : Dict, mqtt_message : mqtt.MQTTMessage):
+        self.ros_node.get_logger().info("[MQTT to ROS] received from topic : {} with payload : {}".format(mqtt_message.topic, mqtt_message.payload))
         now = self.ros_node.get_clock().now()
 
         if self.ros_interval_ is None or now - self.ros_last_published_time_ >= self.ros_interval_:
@@ -82,12 +82,13 @@ class MqttToRosBridge(Bridge):
                 self.ros_last_published_time_ = now
             except Exception as e:
                 self.ros_node.get_logger().error(e)
+                pass
 
-    def create_ros_message(self, mqtt_msg: mqtt.MQTTMessage):
+    def create_ros_message(self, mqtt_message : mqtt.MQTTMessage):
         if self.serialize_.__name__ == "packb":
-            ros_message_dict = self.deserialize_(mqtt_msg.payload, raw=False)
+            ros_message_dict = self.deserialize_(mqtt_message.payload, raw=False)
         else:
-            ros_message_dict = self.deserialize_(mqtt_msg.payload)
+            ros_message_dict = self.deserialize_(mqtt_message.payload)
         return populate_instance(ros_message_dict, self.ros_message_type_())
 
 

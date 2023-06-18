@@ -41,7 +41,8 @@ def mqtt_bridge_node():
     total_bridges = mqtt_node.get_parameter("n_bridges").value
     for i in range(total_bridges):
         bridge_n = str((i % total_bridges) + 1)
-        bridge_param = mqtt_node.get_parameter('bridge.bridge'+bridge_n).value
+        bridge_param = mqtt_node.get_parameter('bridge.bridge' + bridge_n).value
+        mqtt_node.get_logger().info('bridge paramas : ' + bridge_param[0])
         bridge_params.append(dict(zip(bridge_dict_keys, bridge_param)))
 
     mqtt_params = {

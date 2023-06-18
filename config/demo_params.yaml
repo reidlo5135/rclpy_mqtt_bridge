@@ -14,4 +14,4 @@ rclpy_mqtt_bridge_node:
     bridge:
       bridge1: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","std_msgs.msg:String","/chatter","chatter"]
       bridge2: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:RosToMqttBridge","geometry_msgs.msg:Twist","/cmd_vel","cmd_vel"]
-      brideg3: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:MqttToRosBridge", "std_msgs.msg:String", "chatter", "/response/chatter"]
+      bridge3: ["rclpy_mqtt_bridge.bridge.dynamic_bridge:MqttToRosBridge", "std_msgs.msg:String", "chatter", "/response/chatter"]
