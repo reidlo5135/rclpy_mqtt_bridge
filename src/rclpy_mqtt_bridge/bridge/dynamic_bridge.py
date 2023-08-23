@@ -1,15 +1,17 @@
 import rclpy
 import json
 import paho.mqtt.client as mqtt
-
 import std_msgs.msg
 import rcl_interfaces
-from importlib import import_module
+import sensor_msgs.msg
+import geometry_msgs.msg
+
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 from rosbridge_library.internal import message_conversion
 from rclpy_mqtt_bridge.mqtt import broker
+from importlib import import_module
 from typing import List
 from typing import Tuple
 from typing import Any
@@ -50,7 +52,6 @@ class dynamic_bridge(Node):
                 
         module_name: str = (f"{split_topic_type[0]}.{split_topic_type[1]}")
         self.get_logger().info("{} lookup object module_name : {}".format(self.__rclpy_flags__, module_name))
-        import_module(module_name)
         
         object_name: str = split_topic_type[2]
                 
@@ -114,7 +115,7 @@ class dynamic_bridge(Node):
             if topic_name in self.__established_rcl_publishers_list__:
                 self.get_logger().warn("{} [{}] sub to pub connection is already established... ignoring".format(self.__rclpy_flags__, topic_name))
                 return
-                
+            
             parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
             
             rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, topic_name, 10)
@@ -154,3 +155,6 @@ class dynamic_bridge(Node):
                 )
                 self.__publisher_to_subscription__(topic_name, topic_type)
                 self.__subscription_to_publisher__(topic_name, topic_type)
+
+
+__all__ = ['dynamic_bridge']
