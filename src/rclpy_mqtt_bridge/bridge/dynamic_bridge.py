@@ -23,7 +23,7 @@ class dynamic_bridge(Node):
         )
         
         self.__bridge__()
-        timer_loop: float = 5.0
+        timer_loop: float = 3.0
         self.create_timer(timer_loop, self.__bridge__)
 
         try:
@@ -35,7 +35,7 @@ class dynamic_bridge(Node):
 
         self.destroy_node()
 
-    def __publisher_to_subscription__(self, topic_name: str, topic_type: str):
+    def __publisher_to_subscription__(self, topic_name: str, topic_type: str) -> None:
         publishers: int = self.count_publishers(topic_name)
 
         if publishers > 0:
@@ -57,8 +57,14 @@ class dynamic_bridge(Node):
             self.get_logger().info("parsed topic type : [{}]".format(parsed_topic_type))
 
             ros_message_type = eval(parsed_topic_type)
+            
+            def __subscription_callback__(ros_message) -> None:
+                # self.get_logger().info("subscription received message : [{}]".format(ros_message))
+                serialized_ros_message: str = json.dumps(message_conversion.extract_values(ros_message))
+                self.__mqtt_manager__.publish(topic=topic_name, payload=serialized_ros_message)
+        
             self.create_subscription(
-                ros_message_type, topic_name, self.__subscription_callback__, 10
+                ros_message_type, topic_name, __subscription_callback__, 10
             )
             
             if topic_name not in self.__established_ros_topic_list__:
@@ -66,16 +72,10 @@ class dynamic_bridge(Node):
                 self.__established_ros_topic_list__.append(topic_name)
             else:
                 return
-                
         else:
             self.get_logger().info("[{}] is not a publisher".format(topic_name))
 
-    def __subscription_callback__(self, ros_message):
-        self.get_logger().info("subscription received message : [{}]".format(ros_message))
-        serialized_ros_message: str = json.dumps(message_conversion.extract_values(ros_message))
-        self.__mqtt_manager__.publish(topic="/chatter", payload=serialized_ros_message)
-
-    def __bridge__(self):
+    def __bridge__(self) -> None:
         __rclpy_node_name__: str = self.get_name()
         __rclpy_node_namespace__: str = self.get_namespace()
 
