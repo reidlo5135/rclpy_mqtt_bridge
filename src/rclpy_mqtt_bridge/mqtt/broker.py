@@ -1,5 +1,6 @@
 import time
 import paho.mqtt.client as mqtt
+from rclpy.publisher import Publisher
 
 
 class mqtt_logger:
@@ -64,9 +65,14 @@ class mqtt_broker:
             self.__mqtt_logger__.error("===== MQTT failed to connect =====")
 
     def __on_connect__(self, client, user_data, flags, rc) -> None:
-        self.__mqtt_logger__.info(
-            "MQTT connected with result code : {}".format(str(rc))
-        )
+        if rc == 0:
+            self.__mqtt_logger__.info(
+                "===== MQTT connection succeeded result code : [{}] =====".format(str(rc))
+            )
+        else:
+            self.__mqtt_logger__.error(
+                "===== MQTT connection failed result code : [{}] =====".format(str(rc))
+            )
 
     def __on_message__(self, client, user_data, msg) -> None:
         self.__mqtt_logger__.info(
@@ -80,5 +86,5 @@ class mqtt_broker:
         self.client.publish(topic=topic, payload=payload)
 
     def subscribe(self, topic) -> None:
-        self.__mqtt_logger__.info("MQTT subsribe into [{}]".format(topic))
+        self.__mqtt_logger__.info("MQTT granted subscription from [{}]".format(topic))
         self.client.subscribe(topic=topic)
