@@ -3,7 +3,7 @@ from .bridge.dynamic_bridge import dynamic_bridge
 import rclpy
 
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
 
     try:
