@@ -121,16 +121,25 @@ class dynamic_bridge(Node):
             rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, topic_name, 10)
             
             def mqtt_subscription_callback(client: mqtt.Client, user_data: Dict, mqtt_message: mqtt.MQTTMessage):
+                mqtt_topic: str = mqtt_message.topic
+                mqtt_decoded_payload: str = mqtt_message.payload.decode()
+                
                 self.get_logger().info(
-                    "{} MQTT received message : {}".format(self.__rclpy_flags__, mqtt_message.payload.decode())
+                    "{} MQTT received message [{}] from [{}]".format(self.__rclpy_flags__, mqtt_decoded_payload, mqtt_message.topic)
                 )
                 
-                rcl_deserialized_message: Any = json.loads(mqtt_message.payload)
-                self.get_logger().info("{} deserialized message : [{}]".format(self.__rclpy_flags__, rcl_deserialized_message))
-                rcl_message_type: Any = self.__lookup_object__(topic_type)
+                is_rcl_mqtt_topic_equals: bool = (mqtt_topic == rcl_publisher.topic)
                 
-                created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_message, rcl_message_type())
-                rcl_publisher.publish(created_rcl_messages)
+                if (is_rcl_mqtt_topic_equals == False):
+                    self.get_logger().error("{} topic RCL & MQTT topics is not matching each other")
+                    return
+                else:
+                    rcl_deserialized_message: Any = json.loads(mqtt_message.payload)
+                    self.get_logger().info("{} deserialized message : [{}]".format(self.__rclpy_flags__, rcl_deserialized_message))
+                    rcl_message_type: Any = self.__lookup_object__(topic_type)
+                    
+                    created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_message, rcl_message_type())
+                    rcl_publisher.publish(created_rcl_messages)
             
             if topic_name not in self.__established_rcl_publishers_list__:
                 self.get_logger().info("===== {} [{}] sub to pub connection established =====".format(self.__rclpy_flags__, topic_name))
