@@ -1,15 +1,17 @@
 import rclpy
 import json
 import paho.mqtt.client as mqtt
-
 import std_msgs.msg
 import rcl_interfaces
-from importlib import import_module
+import sensor_msgs.msg
+import geometry_msgs.msg
+
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 from rosbridge_library.internal import message_conversion
 from rclpy_mqtt_bridge.mqtt import broker
+from importlib import import_module
 from typing import List
 from typing import Tuple
 from typing import Any
@@ -50,7 +52,6 @@ class dynamic_bridge(Node):
                 
         module_name: str = (f"{split_topic_type[0]}.{split_topic_type[1]}")
         self.get_logger().info("{} lookup object module_name : {}".format(self.__rclpy_flags__, module_name))
-        import_module(module_name)
         
         object_name: str = split_topic_type[2]
                 
@@ -114,22 +115,31 @@ class dynamic_bridge(Node):
             if topic_name in self.__established_rcl_publishers_list__:
                 self.get_logger().warn("{} [{}] sub to pub connection is already established... ignoring".format(self.__rclpy_flags__, topic_name))
                 return
-                
+            
             parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
             
             rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, topic_name, 10)
             
             def mqtt_subscription_callback(client: mqtt.Client, user_data: Dict, mqtt_message: mqtt.MQTTMessage):
+                mqtt_topic: str = mqtt_message.topic
+                mqtt_decoded_payload: str = mqtt_message.payload.decode()
+                
                 self.get_logger().info(
-                    "{} MQTT received message : {}".format(self.__rclpy_flags__, mqtt_message.payload.decode())
+                    "{} MQTT received message [{}] from [{}]".format(self.__rclpy_flags__, mqtt_decoded_payload, mqtt_message.topic)
                 )
                 
-                rcl_deserialized_message: Any = json.loads(mqtt_message.payload)
-                self.get_logger().info("{} deserialized message : [{}]".format(self.__rclpy_flags__, rcl_deserialized_message))
-                rcl_message_type: Any = self.__lookup_object__(topic_type)
+                is_rcl_mqtt_topic_equals: bool = (mqtt_topic == rcl_publisher.topic)
                 
-                created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_message, rcl_message_type())
-                rcl_publisher.publish(created_rcl_messages)
+                if (is_rcl_mqtt_topic_equals == False):
+                    self.get_logger().error("{} topic RCL & MQTT topics is not matching each other")
+                    return
+                else:
+                    rcl_deserialized_message: Any = json.loads(mqtt_message.payload)
+                    self.get_logger().info("{} deserialized message : [{}]".format(self.__rclpy_flags__, rcl_deserialized_message))
+                    rcl_message_type: Any = self.__lookup_object__(topic_type)
+                    
+                    created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_message, rcl_message_type())
+                    rcl_publisher.publish(created_rcl_messages)
             
             if topic_name not in self.__established_rcl_publishers_list__:
                 self.get_logger().info("===== {} [{}] sub to pub connection established =====".format(self.__rclpy_flags__, topic_name))
@@ -154,3 +164,6 @@ class dynamic_bridge(Node):
                 )
                 self.__publisher_to_subscription__(topic_name, topic_type)
                 self.__subscription_to_publisher__(topic_name, topic_type)
+
+
+__all__ = ['dynamic_bridge']

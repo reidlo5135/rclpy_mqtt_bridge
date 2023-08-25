@@ -88,3 +88,6 @@ class mqtt_broker:
     def subscribe(self, topic) -> None:
         self.__mqtt_logger__.info("MQTT granted subscription from [{}]".format(topic))
         self.client.subscribe(topic=topic)
+
+
+__all__ = ['mqtt_broker']
