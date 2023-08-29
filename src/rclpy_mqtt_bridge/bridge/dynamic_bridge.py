@@ -1,17 +1,13 @@
 import rclpy
 import json
 import paho.mqtt.client as mqtt
-import std_msgs.msg
-import rcl_interfaces
-import sensor_msgs.msg
-import geometry_msgs.msg
+import importlib
 
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 from rosbridge_library.internal import message_conversion
 from rclpy_mqtt_bridge.mqtt import broker
-from importlib import import_module
 from typing import List
 from typing import Tuple
 from typing import Any
@@ -45,6 +41,27 @@ class dynamic_bridge(Node):
 
         self.destroy_node()
     
+    def __import_rcl_messages__(self, message_type: str) -> dict:
+        try:
+            split_topic_type: list[str] = message_type.split("/", 3)    
+            module_name: str = (f"{split_topic_type[0]}.{split_topic_type[1]}")
+
+            self.get_logger().info("{} importing message [{}]".format(self.__rclpy_flags__, module_name))
+
+            module = importlib.import_module(module_name)
+            module_attributes = dir(module)
+
+            message_types = {}
+            for attr in module_attributes:
+                if "msg" in attr:
+                    message_type = getattr(module, attr)
+                    message_types[attr] = message_type
+
+            return message_types
+        except ImportError:
+            self.get_logger().error("{} Error occurred while importing [{}] message".format(self.__rclpy_flags__, message_type))
+            return None
+
     def __lookup_object__(self, object_path: str) -> Any:
         self.get_logger().info("{} lookup object path : {}".format(self.__rclpy_flags__, object_path))
                 
@@ -55,7 +72,7 @@ class dynamic_bridge(Node):
         
         object_name: str = split_topic_type[2]
                 
-        module = import_module(module_name, self.__rclpy_node_name__)
+        module = importlib.import_module(module_name, self.__rclpy_node_name__)
         obj: Any = getattr(module, object_name)
                 
         return obj
@@ -86,6 +103,11 @@ class dynamic_bridge(Node):
                 self.get_logger().warn("{} [{}] pub to sub connection is already established... ignoring".format(self.__rclpy_flags__, topic_name))
                 return
             
+            module: dict = self.__import_rcl_messages__(topic_type)
+            if module:
+                for msg_name, msg_type in module.items():
+                    self.get_logger().info("{} message_type : [{}], class : [{}]".format(msg_name, msg_type))
+
             parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
             
             def __rcl_subscription_callback__(ros_message) -> None:
@@ -116,6 +138,11 @@ class dynamic_bridge(Node):
                 self.get_logger().warn("{} [{}] sub to pub connection is already established... ignoring".format(self.__rclpy_flags__, topic_name))
                 return
             
+            module: dict = self.__import_rcl_messages__(topic_type)
+            if module:
+                for msg_name, msg_type in module.items():
+                    self.get_logger().info("{} message_type : [{}], class : [{}]".format(msg_name, msg_type))
+                    
             parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
             
             rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, topic_name, 10)
