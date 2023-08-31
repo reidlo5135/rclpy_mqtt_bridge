@@ -19,10 +19,18 @@ class mqtt_logger:
 
         return formatted_time
 
-    def __log__(self, start_color: str, level: str, message: str, end_color:str) -> None:
+    def __log__(
+        self, start_color: str, level: str, message: str, end_color: str
+    ) -> None:
         rclpy_node_name: str = "rclpy_mqtt_bridge"
         formatted_current_time: str = self.__get_current_time__()
-        print(start_color + "{} {} [{}]".format(level, formatted_current_time, rclpy_node_name) + ": " + message + end_color)
+        print(
+            start_color
+            + "{} {} [{}]".format(level, formatted_current_time, rclpy_node_name)
+            + ": "
+            + message
+            + end_color
+        )
 
     def info(self, message: str) -> None:
         start_color: str = ""
@@ -67,7 +75,9 @@ class mqtt_broker:
     def __on_connect__(self, client, user_data, flags, rc) -> None:
         if rc == 0:
             self.__mqtt_logger__.info(
-                "===== MQTT connection succeeded result code : [{}] =====".format(str(rc))
+                "===== MQTT connection succeeded result code : [{}] =====".format(
+                    str(rc)
+                )
             )
         else:
             self.__mqtt_logger__.error(
@@ -80,9 +90,6 @@ class mqtt_broker:
         )
 
     def publish(self, topic, payload) -> None:
-        # self.__mqtt_logger__.info(
-        #     "MQTT publish into [{}] with payload [{}]".format(topic, payload)
-        # )
         self.client.publish(topic=topic, payload=payload)
 
     def subscribe(self, topic) -> None:
@@ -90,4 +97,4 @@ class mqtt_broker:
         self.client.subscribe(topic=topic)
 
 
-__all__ = ['mqtt_broker']
+__all__ = ["mqtt_broker"]
