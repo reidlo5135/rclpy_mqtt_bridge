@@ -135,7 +135,7 @@ class dynamic_bridge(Node):
                 rcl_serialized_message: str = json.dumps(
                     message_conversion.extract_values(ros_message)
                 )
-                mqtt_topic_name: str = topic_name + self.__mqtt_response_topic_format__
+                mqtt_topic_name: str = self.__mqtt_response_topic_format__ + topic_name
                 self.__mqtt_manager__.publish(
                     topic=mqtt_topic_name, payload=rcl_serialized_message
                 )
@@ -299,7 +299,7 @@ class dynamic_bridge(Node):
                     )
 
                     mqtt_response_topic: str = (
-                        service_name + self.__mqtt_response_topic_format__
+                        self.__mqtt_response_topic_format__ + service_name
                     )
                     mqtt_service_server_error_message: str = (
                         "{} service server is not ready".format(service_name)
@@ -325,7 +325,7 @@ class dynamic_bridge(Node):
                     )
 
                     mqtt_response_topic: str = (
-                        service_name + self.__mqtt_response_topic_format__
+                        self.__mqtt_response_topic_format__ + service_name
                     )
                     self.__mqtt_manager__.publish(
                         mqtt_response_topic, rcl_serialized_response_message
@@ -405,7 +405,7 @@ class dynamic_bridge(Node):
                     )
 
                     mqtt_response_topic: str = (
-                        action_name + self.__mqtt_response_topic_format__
+                        self.__mqtt_response_topic_format__ + action_name
                     )
                     mqtt_action_server_error_message: str = (
                         "{} action server is not ready".format(action_name)
@@ -425,7 +425,7 @@ class dynamic_bridge(Node):
                     )
 
                     mqtt_response_topic: str = (
-                        action_name + self.__mqtt_response_topic_format__
+                        self.__mqtt_response_topic_format__ + action_name
                     )
                     self.__mqtt_manager__.publish(
                         mqtt_response_topic, rcl_serialized_response_message
