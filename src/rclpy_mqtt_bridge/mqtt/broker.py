@@ -1,7 +1,8 @@
 import time
 import paho.mqtt.client as mqtt
-from rclpy.publisher import Publisher
 
+from cryptography.fernet import Fernet
+from typing import Any
 
 class mqtt_logger:
     __info__: str = "[INFO]"
@@ -83,18 +84,39 @@ class mqtt_broker:
             self.__mqtt_logger__.error(
                 "===== MQTT connection failed result code : [{}] =====".format(str(rc))
             )
+    
+    def __generate_secret_key__(self) -> bytes:
+        self.__mqtt_logger__.info("MQTT generated security key")
+        generated_key: bytes = Fernet.generate_key()
+        return generated_key
+    
+    def __create_cipher_suite__(self, key: Any) -> Fernet:
+        self.__mqtt_logger__.info("MQTT created cipher suite")
+        fernet: Fernet = Fernet(key)
+        return fernet
+    
+    def __encrpyt_data__(self, data: Any, cipher_suite: Fernet) -> bytes:
+        encoded_data: Any = data.encode()
+        encrypted_data: bytes = cipher_suite.encrypt(encoded_data)
+        self.__mqtt_logger__.info("MQTT encrypting data : [{}]".format(str(encrypted_data)))
+        return encrypted_data
 
-    def __on_message__(self, client, user_data, msg) -> None:
+    def __decrypt_data__(self, encrypted_data: Any, cipher_suite: Fernet) -> Any:
+        decrypted_data: Any = cipher_suite.decrypt(encrypted_data).decode()
+        self.__mqtt_logger__.info("MQTT decrypting data : [{}]".format(str(decrypted_data)))
+        return decrypted_data
+
+    def __on_message__(self, client: Any, user_data: Any, msg: Any) -> None:
         self.__mqtt_logger__.info(
             "MQTT received message : {}".format(msg.payload.decode())
         )
 
-    def publish(self, topic, payload) -> None:
-        self.client.publish(topic=topic, payload=payload)
+    def publish(self, topic: str, payload: Any) -> None:
+        self.client.publish(topic=topic, payload=payload, qos=0)
 
-    def subscribe(self, topic) -> None:
+    def subscribe(self, topic: str) -> None:
         self.__mqtt_logger__.info("MQTT granted subscription from [{}]".format(topic))
-        self.client.subscribe(topic=topic)
+        self.client.subscribe(topic=topic, qos=0)
 
 
 __all__ = ["mqtt_broker"]
