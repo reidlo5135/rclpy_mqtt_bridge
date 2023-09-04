@@ -1,6 +1,7 @@
+import rclpy
+
 from rclpy.exceptions import ROSInterruptException
 from .bridge.dynamic_bridge import dynamic_bridge
-import rclpy
 
 
 def main(args=None) -> None:

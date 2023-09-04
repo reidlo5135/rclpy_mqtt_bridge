@@ -20,9 +20,7 @@ class mqtt_logger:
 
         return formatted_time
 
-    def __log__(
-        self, start_color: str, level: str, message: str, end_color: str
-    ) -> None:
+    def __log__(self, start_color: str, level: str, message: str, end_color: str) -> None:
         rclpy_node_name: str = "rclpy_mqtt_bridge"
         formatted_current_time: str = self.__get_current_time__()
         print(
@@ -56,16 +54,12 @@ class mqtt_broker:
     __client_keep_alive__: int = 60
     __mqtt_logger__: mqtt_logger = mqtt_logger()
 
-    client: mqtt.Client = mqtt.Client(
-        __client_name__, clean_session=True, userdata=None, transport="tcp"
-    )
+    client: mqtt.Client = mqtt.Client(__client_name__, clean_session=True, userdata=None, transport="tcp")
 
     def __init__(self) -> None:
         self.client.on_connect = self.__on_connect__
         self.client.on_message = self.__on_message__
-        self.client.connect(
-            self.__broker_address__, self.__broker_port__, self.__client_keep_alive__
-        )
+        self.client.connect(self.__broker_address__, self.__broker_port__, self.__client_keep_alive__)
 
         if self.client.is_connected:
             self.__mqtt_logger__.info("===== MQTT connected =====")
@@ -75,15 +69,9 @@ class mqtt_broker:
 
     def __on_connect__(self, client, user_data, flags, rc) -> None:
         if rc == 0:
-            self.__mqtt_logger__.info(
-                "===== MQTT connection succeeded result code : [{}] =====".format(
-                    str(rc)
-                )
-            )
+            self.__mqtt_logger__.info("===== MQTT connection succeeded result code : [{}] =====".format(str(rc)))
         else:
-            self.__mqtt_logger__.error(
-                "===== MQTT connection failed result code : [{}] =====".format(str(rc))
-            )
+            self.__mqtt_logger__.error("===== MQTT connection failed result code : [{}] =====".format(str(rc)))
     
     def __generate_secret_key__(self) -> bytes:
         self.__mqtt_logger__.info("MQTT generated security key")
@@ -107,9 +95,7 @@ class mqtt_broker:
         return decrypted_data
 
     def __on_message__(self, client: Any, user_data: Any, msg: Any) -> None:
-        self.__mqtt_logger__.info(
-            "MQTT received message : {}".format(msg.payload.decode())
-        )
+        self.__mqtt_logger__.info("MQTT received message : {}".format(msg.payload.decode()))
 
     def publish(self, topic: str, payload: Any) -> None:
         self.client.publish(topic=topic, payload=payload, qos=0)

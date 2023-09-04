@@ -1,6 +1,7 @@
 import rclpy
 import rclpy.action
 import rcl_interfaces.msg
+import diagnostic_msgs.msg
 import std_msgs.msg
 import sensor_msgs.msg
 import geographic_msgs.msg
@@ -37,16 +38,23 @@ class dynamic_bridge(Node):
     __mqtt_response_topic_format__: str = "/atc/uv/response"
 
     __established_rcl_publishers_list__: List[str] = []
+    __established_rcl_publishers_dict__: Dict = {}
+    
     __established_rcl_subscriptions_list__: List[str] = []
-    __established_rcl_service_client_list__: List[str] = []
+    __established_rcl_subscriptions_dict__: Dict = {}
+    
+    __established_rcl_service_clients_list__: List[str] = []
+    __established_rcl_service_clients_dict__: Dict = {}
+    
     __established_rcl_action_client_list__: List[str] = []
+    __established_rcl_action_clients_dict__: Dict = {}
 
     def __init__(self) -> None:
         super().__init__(self.__rclpy_node_name__)
         self.get_logger().info("===== {} [{}] created =====".format(self.__rclpy_flags__, self.__rclpy_node_name__))
 
         self.__bridge__()
-        timer_loop: float = 2.5
+        timer_loop: float = 2.0
         self.create_timer(timer_loop, self.__bridge__)
 
         try:
@@ -57,6 +65,7 @@ class dynamic_bridge(Node):
             self.__mqtt_manager__.client.loop_stop()
 
         self.destroy_node()
+
 
     def __lookup_object__(self, object_path: str) -> Any:
         self.get_logger().info("{} lookup object path : {}".format(self.__rclpy_flags__, object_path))
@@ -73,6 +82,7 @@ class dynamic_bridge(Node):
 
         return obj
 
+
     def __parse_rcl_topic_type__(self, topic_type: str) -> Any:
         split_topic_type: list[str] = topic_type.split("/", 3)
 
@@ -83,42 +93,46 @@ class dynamic_bridge(Node):
 
         return parsed_rcl_topic_type
 
-    def __publisher_to_subscription__(self, rcl_topic_name: str, topic_type: str) -> None:
-        publishers: int = self.count_publishers(rcl_topic_name)
 
-        if publishers > 0:
+    def __publisher_to_subscription__(self, rcl_topic_name: str, topic_type: str) -> None:
+        rcl_publishers_count: int = self.count_publishers(rcl_topic_name)
+        
+        is_ignored_rcl_topic_name: bool = (rcl_topic_name == "/parameter_events") or (rcl_topic_name == "/rosout")
+
+        if rcl_publishers_count > 0:
             self.get_logger().info("{} [{}] is a publisher".format(self.__rclpy_flags__, rcl_topic_name))
 
-            is_ignored_topic_name: bool = (rcl_topic_name == "/parameter_events") or (rcl_topic_name == "/rosout")
-
-            if is_ignored_topic_name:
+            if is_ignored_rcl_topic_name:
                 self.get_logger().warn("{} ignoring [{}] publisher".format(self.__rclpy_flags__, rcl_topic_name))
                 return
             elif rcl_topic_name in self.__established_rcl_subscriptions_list__:
                 self.get_logger().warn("{} [{}] pub to sub connection is already established... ignoring".format(self.__rclpy_flags__, rcl_topic_name))
                 return
 
-            parsed_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
+            parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
 
             def rcl_subscription_callback(rcl_callback_message: Any) -> None:
                 mqtt_serialized_message: str = json.dumps(message_conversion.extract_values(rcl_callback_message))
                 mqtt_topic_name: str = self.__mqtt_response_topic_format__ + rcl_topic_name
                 self.__mqtt_manager__.publish(topic=mqtt_topic_name, payload=mqtt_serialized_message)
-
-            self.create_subscription(parsed_topic_type, rcl_topic_name, rcl_subscription_callback, 10)
+            
+            established_rcl_subscription: Subscription = self.create_subscription(parsed_rcl_topic_type, rcl_topic_name, rcl_subscription_callback, 10)
 
             if rcl_topic_name not in self.__established_rcl_subscriptions_list__:
                 self.get_logger().info("===== {} [{}] pub to sub connection established =====".format(self.__rclpy_flags__, rcl_topic_name))
                 self.__established_rcl_subscriptions_list__.append(rcl_topic_name)
+                self.__established_rcl_subscriptions_dict__[rcl_topic_name] = established_rcl_subscription
             else:
                 return
         else:
             self.get_logger().info("{} [{}] is not a publisher".format(self.__rclpy_flags__, rcl_topic_name))
+            return
+
 
     def __subscription_to_publisher__(self, rcl_topic_name: str, topic_type: str) -> None:
-        subscriptions: int = self.count_subscribers(rcl_topic_name)
+        rcl_subscriptions_count: int = self.count_subscribers(rcl_topic_name)
 
-        if subscriptions > 0:
+        if rcl_subscriptions_count > 0:
             self.get_logger().info("{} [{}] is a subscription".format(self.__rclpy_flags__, rcl_topic_name))
 
             if rcl_topic_name in self.__established_rcl_publishers_list__:
@@ -127,7 +141,7 @@ class dynamic_bridge(Node):
 
             parsed_rcl_topic_type: Any = self.__parse_rcl_topic_type__(topic_type)
 
-            rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, rcl_topic_name, 10)
+            established_rcl_publisher: Publisher = self.create_publisher(parsed_rcl_topic_type, rcl_topic_name, 10)
 
             def mqtt_subscription_callback(client: mqtt.Client, user_data: Dict, mqtt_message: mqtt.MQTTMessage):
                 mqtt_topic: str = mqtt_message.topic
@@ -135,7 +149,7 @@ class dynamic_bridge(Node):
 
                 self.get_logger().info("{} MQTT received message [{}] from [{}]".format(self.__rclpy_flags__, mqtt_decoded_payload, mqtt_message.topic))
 
-                is_rcl_mqtt_topic_equals: bool = rcl_publisher.topic in mqtt_topic
+                is_rcl_mqtt_topic_equals: bool = established_rcl_publisher.topic in mqtt_topic
 
                 if is_rcl_mqtt_topic_equals == False:
                     self.get_logger().error("{} topic RCL & MQTT topics is not matching each other")
@@ -146,11 +160,12 @@ class dynamic_bridge(Node):
                     rcl_message_type: Any = self.__lookup_object__(topic_type)
 
                     created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_message, rcl_message_type())
-                    rcl_publisher.publish(created_rcl_messages)
+                    established_rcl_publisher.publish(created_rcl_messages)
 
             if rcl_topic_name not in self.__established_rcl_publishers_list__:
                 self.get_logger().info("===== {} [{}] sub to pub connection established =====".format(self.__rclpy_flags__, rcl_topic_name))
                 self.__established_rcl_publishers_list__.append(rcl_topic_name)
+                self.__established_rcl_publishers_dict__[rcl_topic_name] = established_rcl_publisher
                 
                 mqtt_topic_name: str = self.__mqtt_request_topic_format__ + rcl_topic_name
                 self.__mqtt_manager__.subscribe(mqtt_topic_name)
@@ -159,20 +174,21 @@ class dynamic_bridge(Node):
                 return
         else:
             self.get_logger().info("{} [{}] is not a subscription".format(self.__rclpy_flags__, rcl_topic_name))
+            return
 
-    def __service_request__(self, service_name: str, service_type: str) -> None:
-        is_ignoring_required_service_server: bool = "parameter" in service_name
+    def __service_to_client__(self, rcl_service_name: str, service_type: str) -> None:
+        is_ignoring_required_service_server: bool = "parameter" in rcl_service_name
 
         if is_ignoring_required_service_server:
-            self.get_logger().warn("{} ignoring [{}] service client...".format(self.__rclpy_flags__, service_name))
+            self.get_logger().warn("{} ignoring [{}] service client...".format(self.__rclpy_flags__, rcl_service_name))
             return
-        elif service_name in self.__established_rcl_service_client_list__:
-            self.get_logger().warn("{} [{}] service client connection is already established... ignoring".format(self.__rclpy_flags__, service_name))
+        elif rcl_service_name in self.__established_rcl_service_clients_list__:
+            self.get_logger().warn("{} [{}] service client connection is already established... ignoring".format(self.__rclpy_flags__, rcl_service_name))
             return
 
         parsed_rcl_service_type: Any = self.__parse_rcl_topic_type__(service_type)
         
-        rcl_service_client: Client = self.create_client(parsed_rcl_service_type, service_name)
+        established_rcl_service_client: Client = self.create_client(parsed_rcl_service_type, rcl_service_name)
 
         def mqtt_subscription_callback(client: mqtt.Client, user_data: Dict, mqtt_message: mqtt.MQTTMessage):
             mqtt_topic: str = mqtt_message.topic
@@ -180,7 +196,7 @@ class dynamic_bridge(Node):
 
             self.get_logger().info("{} MQTT service request received message [{}] from [{}]".format(self.__rclpy_flags__, mqtt_decoded_payload, mqtt_message.topic))
 
-            is_rcl_mqtt_topic_equals: bool = rcl_service_client.srv_name in mqtt_topic
+            is_rcl_mqtt_topic_equals: bool = established_rcl_service_client.srv_name in mqtt_topic
 
             if is_rcl_mqtt_topic_equals == False:
                 self.get_logger().error("{} service request RCL & MQTT topics is not matching each other")
@@ -191,46 +207,46 @@ class dynamic_bridge(Node):
 
                 rcl_message_type: Any = self.__lookup_object__(service_type)
                 
-                service_server_waiting_time: float = 1.0
+                rcl_service_server_waiting_time: float = 1.0
                 
-                is_service_server_ready: bool = rcl_service_client.wait_for_service(service_server_waiting_time)
+                is_rcl_service_server_ready: bool = established_rcl_service_client.wait_for_service(rcl_service_server_waiting_time)
                 
-                while not is_service_server_ready:
-                    self.get_logger().error("{} [{}] service server is not ready yet...".format(self.__rclpy_flags__, service_name))
+                while not is_rcl_service_server_ready:
+                    self.get_logger().error("{} [{}] service server is not ready yet...".format(self.__rclpy_flags__, rcl_service_name))
 
-                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + service_name)
-                    mqtt_service_server_error_message: str = ("{} service server is not ready".format(service_name))
+                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + rcl_service_name)
+                    mqtt_service_server_error_message: str = ("{} service server is not ready".format(rcl_service_name))
                     self.__mqtt_manager__.publish(mqtt_response_topic, mqtt_service_server_error_message)
                     break
                 
-                self.get_logger().info("{} calling to [{}] service server".format(self.__rclpy_flags__, service_name))
+                self.get_logger().info("{} calling to [{}] service server".format(self.__rclpy_flags__, rcl_service_name))
                 
                 created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_request_message, rcl_message_type())
-                service_request = created_rcl_messages.Request()
-                service_future: Future = rcl_service_client.call_async(service_request)
-                service_call_async_result: Any = service_future.result()
+                rcl_service_request = created_rcl_messages.Request()
+                rcl_service_future: Future = established_rcl_service_client.call_async(rcl_service_request)
+                rcl_service_call_async_result: Any = rcl_service_future.result()
 
-                mqtt_serialized_response_message: str = json.dumps(message_conversion.extract_values(service_call_async_result))
-                mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + service_name)
+                mqtt_serialized_response_message: str = json.dumps(message_conversion.extract_values(rcl_service_call_async_result))
+                mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + rcl_service_name)
                 self.__mqtt_manager__.publish(mqtt_response_topic, mqtt_serialized_response_message)
-            if service_name not in self.__established_rcl_publishers_list__:
-                self.get_logger().info("===== {} [{}] service client connection established =====".format(self.__rclpy_flags__, service_name))
-                self.__established_rcl_service_client_list__.append(service_name)
-                self.__mqtt_manager__.subscribe(service_name)
-                self.__mqtt_manager__.client.message_callback_add(
-                    service_name, mqtt_subscription_callback
-                )
+            if rcl_service_name not in self.__established_rcl_publishers_list__:
+                self.get_logger().info("===== {} [{}] service client connection established =====".format(self.__rclpy_flags__, rcl_service_name))
+                self.__established_rcl_service_clients_list__.append(rcl_service_name)
+                self.__established_rcl_service_clients_dict__[rcl_service_name] = established_rcl_service_client
+                self.__mqtt_manager__.subscribe(rcl_service_name)
+                self.__mqtt_manager__.client.message_callback_add(rcl_service_name, mqtt_subscription_callback)
             else:
                 return
 
-    def __action_request__(self, action_name: str, action_type: str) -> None:
-        if action_name in self.__established_rcl_action_client_list__:
-            self.get_logger().warn("{} [{}] action client connection is already established... ignoring".format(self.__rclpy_flags__, action_name))
+
+    def __action_to_client__(self, rcl_action_name: str, action_type: str) -> None:
+        if rcl_action_name in self.__established_rcl_action_client_list__:
+            self.get_logger().warn("{} [{}] action client connection is already established... ignoring".format(self.__rclpy_flags__, rcl_action_name))
             return
 
         parsed_rcl_action_type: Any = self.__parse_rcl_topic_type__(action_type)
         
-        rcl_action_client: ActionClient = ActionClient(self, parsed_rcl_action_type, action_name)
+        established_rcl_action_client: ActionClient = ActionClient(self, parsed_rcl_action_type, rcl_action_name)
 
         def mqtt_subscription_callback(client: mqtt.Client, user_data: Dict, mqtt_message: mqtt.MQTTMessage):
             mqtt_topic: str = mqtt_message.topic
@@ -238,7 +254,7 @@ class dynamic_bridge(Node):
 
             self.get_logger().info("{} MQTT action send goal received message [{}] from [{}]".format(self.__rclpy_flags__, mqtt_decoded_payload, mqtt_message.topic))
 
-            is_rcl_mqtt_topic_equals: bool = rcl_action_client._action_name in mqtt_topic
+            is_rcl_mqtt_topic_equals: bool = established_rcl_action_client._action_name in mqtt_topic
             
             if is_rcl_mqtt_topic_equals == False:
                 self.get_logger().error("{} action send goal RCL & MQTT topics is not matching each other")
@@ -250,35 +266,36 @@ class dynamic_bridge(Node):
                 rcl_message_type: Any = self.__lookup_object__(action_type)
                 
                 action_server_waiting_time: float = 1.0
-                is_action_server_ready: Any = rcl_action_client.wait_for_server(action_server_waiting_time)
+                is_action_server_ready: Any = established_rcl_action_client.wait_for_server(action_server_waiting_time)
 
                 if not is_action_server_ready:
-                    self.get_logger().error("{} [{}] action server is not ready yet...".format(self.__rclpy_flags__, action_name))
+                    self.get_logger().error("{} [{}] action server is not ready yet...".format(self.__rclpy_flags__, rcl_action_name))
 
-                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + action_name)
-                    mqtt_action_server_error_message: str = ("{} action server is not ready".format(action_name))
+                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + rcl_action_name)
+                    mqtt_action_server_error_message: str = ("{} action server is not ready".format(rcl_action_name))
                     self.__mqtt_manager__.publish(mqtt_response_topic, mqtt_action_server_error_message)
                     return
                 else:
                     created_rcl_messages: Any = message_conversion.populate_instance(rcl_deserialized_request_message, rcl_message_type())
 
                     action_goal = created_rcl_messages.Goal()
-                    action_future: Future = rcl_action_client.send_goal_async(action_goal)
+                    action_future: Future = established_rcl_action_client.send_goal_async(action_goal)
                     action_send_goal_result: Any = action_future.result()
 
                     mqtt_serialized_response_message: str = json.dumps(message_conversion.extract_values(action_send_goal_result))
-                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + action_name)
+                    mqtt_response_topic: str = (self.__mqtt_response_topic_format__ + rcl_action_name)
                     self.__mqtt_manager__.publish(mqtt_response_topic, mqtt_serialized_response_message)
-            if action_name not in self.__established_rcl_publishers_list__:
-                self.get_logger().info("===== {} [{}] action client connection established =====".format(self.__rclpy_flags__, action_name))
+            if rcl_action_name not in self.__established_rcl_publishers_list__:
+                self.get_logger().info("===== {} [{}] action client connection established =====".format(self.__rclpy_flags__, rcl_action_name))
                 
-                self.__established_rcl_action_client_list__.append(action_name)
+                self.__established_rcl_action_client_list__.append(rcl_action_name)
                 
-                mqtt_topic_name: str = self.__mqtt_request_topic_format__ + action_name
+                mqtt_topic_name: str = self.__mqtt_request_topic_format__ + rcl_action_name
                 self.__mqtt_manager__.subscribe(mqtt_topic_name)
                 self.__mqtt_manager__.client.message_callback_add(mqtt_topic_name, mqtt_subscription_callback)
             else:
                 return
+
 
     def __bridge__(self) -> None:
         __rclpy_node_name__: str = self.get_name()
@@ -298,7 +315,7 @@ class dynamic_bridge(Node):
         for service_name, service_type_list in service_and_types:
             for service_type in service_type_list:
                 self.get_logger().info("{} service : [{}], type : [{}]".format(self.__rclpy_flags__, service_name, service_type))
-                self.__service_request__(service_name, service_type)
+                self.__service_to_client__(service_name, service_type)
 
 
         action_and_types: List[Tuple[str, List[str]]] = get_action_names_and_types(self)
