@@ -6,7 +6,7 @@
   - [Environment](#1-environment)
   - [SetUp Installation](#2-setup-installation)
     - [Prerequisites](#2-1-prerequisites)
-    - [Installing rosbridge library](#2-2-installing-rosbridge-library)
+    - [Installing rosbridge library](#2-3-installing-rosbridge-library)
   - [Clone & Build Project](#3-clone--build-project)
     - [Clone Project](#3-1-clone-project)
     - [Build Project](#3-2-build-project)
@@ -34,7 +34,12 @@ Before installing, please ensure the following softare is installed and configur
 - [ROS2](https://index.ros.org/doc/ros2/Installation/) version required Foxy-Fitzroy -
   **INSTALL [ROS2 Foxy-Fitzroy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html)**
 
-### 2-2. Installing rosbridge library
+### 2-2. Install python-dev-is-python3
+```bash
+sudo apt-get install python-dev-is-python3
+```
+
+### 2-3. Install rosbridge library
 ```bash
 sudo apt-get install ros-foxy-rosbridge-library
 ```
