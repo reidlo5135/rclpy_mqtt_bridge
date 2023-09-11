@@ -64,8 +64,8 @@ class dynamic_bridge(Node):
     __rclpy_flags__: str = "RCLPY"
 
     __mqtt_manager__: broker.mqtt_broker = broker.mqtt_broker()
-    __mqtt_request_topic_format__: str = "/atc/uv/request"
-    __mqtt_response_topic_format__: str = "/atc/uv/response"
+    __mqtt_request_topic_format__: str = "/request"
+    __mqtt_response_topic_format__: str = "/response"
 
     __established_rcl_publishers_list__: List[str] = []
     __established_rcl_publishers_dict__: Dict = {}

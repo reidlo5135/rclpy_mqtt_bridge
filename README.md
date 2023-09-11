@@ -86,7 +86,7 @@ ros2 run rclpy_mqtt_bridge dynamic_bridge
 # subscription callback data example
 # {"data": "Hello World: 53"}
 # {"data": "Hello World: 54"}
-mosquitto_sub -h localhost -p 1883 -t "/atc/uv/response/chatter"
+mosquitto_sub -h localhost -p 1883 -t "/response/chatter"
 ```
 
 ### 4-2. MQTT to ROS2
@@ -102,7 +102,7 @@ ros2 run rclpy_mqtt_bridge dynamic_bridge
 # publish your ROS2 data by MQTT publisher
 # publishing message data example
 # '{"data": "hi bridge"}'
-mosquitto_pub -h localhost -p 1883 -t "/atc/uv/request/chatter" -m "'{"data":"hi bridge"}'"
+mosquitto_pub -h localhost -p 1883 -t "/request/chatter" -m "'{"data":"hi bridge"}'"
 
 # check subscription callback data in ros2 listener node terminal
 # subscription callback data example
