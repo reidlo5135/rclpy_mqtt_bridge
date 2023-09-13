@@ -6,7 +6,9 @@
   - [Environment](#1-environment)
   - [SetUp Installation](#2-setup-installation)
     - [Prerequisites](#2-1-prerequisites)
-    - [Installing rosbridge library](#2-3-installing-rosbridge-library)
+      - [Install mosquitto 1.6.9](#2-1-1-install-mosquitto-169)
+    - [Install python-dev-is-python3](#2-2-install-python-dev-is-python3)
+    - [Install rosbridge library](#2-3-installing-rosbridge-library)
   - [Clone & Build Project](#3-clone--build-project)
     - [Clone Project](#3-1-clone-project)
     - [Build Project](#3-2-build-project)
@@ -25,14 +27,20 @@
 
 ### 2-1. Prerequisites
 
-Before installing, please ensure the following softare is installed and configured on your system:
+Before installing, please ensure the following software is installed and configured on your system:
 
-- [ubuntu](https://ubuntu.com/) version required 20.04 - **INSTALL [ubuntu](https://ubuntu.com/)**
+- [ubuntu](https://ubuntu.com/) version required 20.04 - **INSTALL [ubuntu 20.04](https://ubuntu.com/)**
 
-- [mosquitto](https://mosquitto.org/) version required 1.6.9 - **INSTALL [mosquitto](https://mosquitto.org/)**
+- [mosquitto](https://mosquitto.org/) version required 1.6.9 - **INSTALL [mosquitto 1.6.9](https://mosquitto.org/)**
 
 - [ROS2](https://index.ros.org/doc/ros2/Installation/) version required Foxy-Fitzroy -
   **INSTALL [ROS2 Foxy-Fitzroy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html)**
+
+### 2-1-1. Install mosquitto 1.6.9
+```bash
+sudo apt-get update
+sudo apt-get install mosquitto-dev
+```
 
 ### 2-2. Install python-dev-is-python3
 ```bash
@@ -86,7 +94,7 @@ ros2 run rclpy_mqtt_bridge dynamic_bridge
 # subscription callback data example
 # {"data": "Hello World: 53"}
 # {"data": "Hello World: 54"}
-mosquitto_sub -h localhost -p 1883 -t "/atc/uv/response/chatter"
+mosquitto_sub -h localhost -p 1883 -t "/response/chatter"
 ```
 
 ### 4-2. MQTT to ROS2
@@ -102,7 +110,7 @@ ros2 run rclpy_mqtt_bridge dynamic_bridge
 # publish your ROS2 data by MQTT publisher
 # publishing message data example
 # '{"data": "hi bridge"}'
-mosquitto_pub -h localhost -p 1883 -t "/atc/uv/request/chatter" -m "'{"data":"hi bridge"}'"
+mosquitto_pub -h localhost -p 1883 -t "/request/chatter" -m "'{"data":"hi bridge"}'"
 
 # check subscription callback data in ros2 listener node terminal
 # subscription callback data example
